@@ -7,18 +7,16 @@ require('dotenv/config')
 // app.use(bodyParser.json())
 
 // Middleware
-// const authRoute = require('./routes/auth') // user authenticatoin
-// const auctionRoute = require('./routes/auth) // auctions
+// const authRoute = require('./routes/auth') // user authentication
+const auctionRoute = require('./routes/auction') // auction
 // const itemsRoute = require('./routes/items) // items
 
 
 // Routes
 // app.use('/api/user', authRoute)
-// app.use('/api/auctions', auctionRoute)
+app.use('/api/auctions', auctionRoute)
 // app.use('/api/items', itemsRoute)
-app.get('/', (req,res) =>{
-    res.send('Homepage!')
-})
+
 
 // Connect DB
 mongoose.connect(process.env.DB_CONNECTOR, ()=>{
