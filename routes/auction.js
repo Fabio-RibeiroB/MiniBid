@@ -15,6 +15,6 @@ router.get('/', async(req, res)=>{
 })
 
 // GET One Auction (by iD)
-
+router.get('/')
 
 module.exports=router
