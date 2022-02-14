@@ -1,19 +1,19 @@
 const express = require('express')
 const app = express()
 const mongoose = require('mongoose')
-//const bodyParser = require('body-parser')
+const bodyParser = require('body-parser')
 require('dotenv/config')
 
-// app.use(bodyParser.json())
+app.use(bodyParser.json())
 
 // Middleware
-// const authRoute = require('./routes/auth') // user authentication
+const authRoute = require('./routes/auth') // user authentication
 const auctionRoute = require('./routes/auction') // auction
 // const itemsRoute = require('./routes/items) // items
 
 
 // Routes
-// app.use('/api/user', authRoute)
+app.use('/api/user', authRoute)
 app.use('/api/auctions', auctionRoute)
 // app.use('/api/items', itemsRoute)
 
