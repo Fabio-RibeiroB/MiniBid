@@ -21,9 +21,7 @@ router.post('/register', async(req,res)=>{
     // if (userExists){
     //     return res.status(400).send({message:'User already exits'})
     // }
-
     res.send(registerValidation(req.body))
- 
 })
 
 module.exports=router
