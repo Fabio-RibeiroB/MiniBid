@@ -37,8 +37,24 @@ router.post('/', verifyToken, async (req, res)=>{
         const auctionToSave = await auctionData.save()
         res.send(auctionToSave)
     }catch(err){
-        //res.send('Oh no')
-        res.status(400).send({message:err}['message']['message'])//['path'])//['details'][0]['message']})
+        res.status(400).send({message:err}['message']['message'])
     }
 })
+
+// PATCH (Bid)
+router.patch('/:postId', verifyToken, async (req,res)=>{
+    try{
+        const updateAuctionById = await Auction.updateOne(
+            {_id:req.params.postId},
+            {$set:{
+                bidding_price:req.body.bidding_price,
+                current_bidder:req.body.current_bidder
+            }
+        })
+        res.send(updateAuctionById)
+    }catch(err){
+        res.status(400).send({message:err})
+    }
+})
+
 module.exports=router
