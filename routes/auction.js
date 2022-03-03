@@ -31,9 +31,9 @@ router.post('/', verifyToken, async (req, res)=>{
     const auctionData = new Auction({
             item:req.body.item,
             bidding_price:req.body.bidding_price,
-            time_left:req.body.time_left,
+            hours_left:req.body.hours_left,
             owner:req.body.owner,
-            stop_time:date.addHours(now, req.body.time_left)
+            stop_time:date.addHours(now, req.body.hours_left)
     })
 
     try{
@@ -46,9 +46,11 @@ router.post('/', verifyToken, async (req, res)=>{
 
 // PATCH (Bid)
 router.patch('/:postId', verifyToken, async (req,res)=>{
+    const now = new Date()
+
     try{
         const getPostById = await Auction.findById(req.params.postId)
-        if(getPostById.status == 'Open for offers'){
+        if(getPostById.status == 'Open for offers' && now < getPostById.stop_time){ // can only bid if Open for offers
             try{
                 const updateAuctionById = await Auction.updateOne(
                     {_id:req.params.postId},
@@ -68,4 +70,15 @@ router.patch('/:postId', verifyToken, async (req,res)=>{
     }
 })
 
+// PATCH (Update status to closed when time expired)
+// setInterval(function () {
+//         const now = new Date()
+//         try{
+//             console.log('Testing')
+//             const elapsed = Auction.findOne(stop_time < now)
+//             console.log(elapsed)//find the elapsed auction
+//         }catch{
+//             console.log('Everything fine')
+//         } 
+// }, 1000);
 module.exports=router
