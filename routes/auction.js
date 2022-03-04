@@ -7,7 +7,19 @@ const date = require('date-and-time')
 
 // GET Auctions (all)
 router.get('/', verifyToken, async(req, res)=>{
+    
+
     try{
+        
+        const now = new Date()
+
+        // Change and update status of auction if they are Completed
+        const updatedStatus = await Auction.updateMany({stop_time:{$lte: now}},{$set:{status:'Completed'}}) //hours_left:0}})
+        // Change hours_left
+        //const updatedTime = await Auction.find({status:'Open for offers'},{$set:{current_bidder:updatedTime.winner}})//date.subtract("stop_time", now).toHours()}})
+        //const updatedTime =  await Auction.updateMany({status:'Open for offers'}, [{$set:{hours_left:date.subtract("$stop_time", now).toHours()}}])
+
+
         const auctions = await Auction.find().limit(10)
         res.send(auctions)
     }catch(err){
@@ -18,6 +30,13 @@ router.get('/', verifyToken, async(req, res)=>{
 // GET One Auction (by iD)
 router.get('/:postId', verifyToken, async (req, res)=>{
     try{
+                
+        const now = new Date()
+
+        // Change and update status of auction if they are Completed
+        const updatedPosts = await Auction.updateMany({stop_time:{$lte: now}},{$set:{status:'Completed'}})
+
+
         const getPostById = await Auction.findById(req.params.postId)
         res.send(getPostById)
     }catch(err){
@@ -50,7 +69,7 @@ router.patch('/:postId', verifyToken, async (req,res)=>{
 
     try{
         const getPostById = await Auction.findById(req.params.postId)
-        if(getPostById.status == 'Open for offers' && now < getPostById.stop_time){ // can only bid if Open for offers
+        if(getPostById.status == 'Open for offers' && now < getPostById.stop_time && req.body.bidding_price >= getPostById.bidding_price){ // can only bid if Open for offers and before the end of auction
             try{
                 const updateAuctionById = await Auction.updateOne(
                     {_id:req.params.postId},
@@ -63,22 +82,37 @@ router.patch('/:postId', verifyToken, async (req,res)=>{
             }catch(err){
                 res.status(400).send({message:err})
             }
-        }else{res.status(423).send('You can no longer bid for this item')}
+        }else{res.status(423).send('You cannot bid for this item (time expired or not high enough bid')}
         
     }catch(err){
         res.status(400).send('Something went wrong.')
     }
 })
 
-// PATCH (Update status to closed when time expired)
+// Update status to closed when time expired
 // setInterval(function () {
-//         const now = new Date()
-//         try{
-//             console.log('Testing')
-//             const elapsed = Auction.findOne(stop_time < now)
-//             console.log(elapsed)//find the elapsed auction
-//         }catch{
-//             console.log('Everything fine')
-//         } 
-// }, 1000);
+//     const now = new Date()
+
+//     // no await?
+//     Auction.findOne({stop_time: {$gte:now} }, function (err, docs) {
+//         if (err){
+//             res.send({message:err})
+//         }
+//         else{
+//             const time_to_go = date.subtract(docs.stop_time, now).toHours()
+//             const updatedTime =  Auction.updateOne({_id:docs._id}, {$set:{hours_left:time_to_go}})
+//             console.log(time_to_go)
+//         }
+//     })
+//         // const now = new Date()
+//         // try{
+//         //     console.log('Testing')
+//         //     const elapsed = Auction.find({stop_time:{$gte: now}})
+            
+//         //     //date.subtract("stop_time", now).toHours()}})
+//         //     console.log(elapsed)//find the elapsed auction
+//         // }catch{
+//         //     console.log('Everything fine')
+//         // } 
+// }, 5000)
 module.exports=router

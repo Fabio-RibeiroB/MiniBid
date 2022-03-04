@@ -7,10 +7,10 @@ const auctionSchema = mongoose.Schema({
         max:256
     },
     bidding_price:{
-        type:String,
+        type:Number,
         required:true,
-        min:5,
-        max:16
+        min:0.01,
+        max:1000000000
     },
     current_bidder:{
         type:String,
