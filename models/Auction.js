@@ -44,6 +44,9 @@ const auctionSchema = mongoose.Schema({
         default:'TBD',
         min:2,
         max:256
+    },
+    history:{
+        type: []
     }
 })
 module.exports=mongoose.model('auction', auctionSchema)
