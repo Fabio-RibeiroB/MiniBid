@@ -5,17 +5,22 @@ const Auction = require('../models/Auction')
 const verifyToken = require('../verifyToken')
 const date = require('date-and-time')
 
+
+
 // GET Auctions (all)
 router.get('/', verifyToken, async(req, res)=>{
     
 
     try{
         
-        const now = new Date()
+        let now = Date.now();
+        let date_ob = new Date(now);
+        let hour = date_ob.getHours();
+        let minutes = date_ob.getMinutes();
 
         // Change and update status of auction if they are Completed
         const updatedStatus = await Auction.updateMany(
-            {stop_time:{$lte: now}},
+            {end:{$lte: now}},
 
         
             [
@@ -24,14 +29,19 @@ router.get('/', verifyToken, async(req, res)=>{
             ]
         )
         
-        //hours_left:0}})
-        // Change hours_left
-        //const updatedTime = await Auction.find({status:'Open for offers'},{$set:{current_bidder:updatedTime.winner}})//date.subtract("stop_time", now).toHours()}})
-        //const updatedTime =  await Auction.updateMany({status:'Open for offers'}, [{$set:{hours_left:date.subtract("$stop_time", now).toHours()}}])
 
-        // Announce the Winner!
-        //const updatedWinner = await Auction.updateMany({status:'Completed'},[{$set:{winner:['$current_bidder']}}])
-        
+        const updateTime = await Auction.updateMany(
+            {end:{$gt: now}},
+            [
+                // Stage 1: Subtract stop time and now
+                {$set:
+                    {
+                        milliseconds_to_go: {$subtract: ["$end", date_ob]}
+                    }
+                }
+            ]
+        )
+
 
         const auctions = await Auction.find().select({'history':0}).limit(10) // don't display the bidding history
         res.send(auctions)
@@ -44,19 +54,7 @@ router.get('/', verifyToken, async(req, res)=>{
 router.get('/history/:postId', verifyToken, async (req, res)=>{
     try{
                 
-       //const now = new Date()
-
-        // // Change and update status of auction if they are Completed
-        // const updatedPosts = await Auction.updateMany({stop_time:{$lte: now}},
-            
-        //     [
-        //         {$set:{status:'Completed', winner:"$current_bidder"}},
-        //         {$unset:"current_bidder"}
-        //         ]
-        //     )
-
-
-        const getPostById = await Auction.findById(req.params.postId).select({'history':1})
+        const getPostById = await Auction.findById(req.params.postId).select({'history':1, '_id':0})
         res.send(getPostById)
     }catch(err){
         res.send('Something went wrong.')
@@ -68,15 +66,28 @@ router.get('/:postId', verifyToken, async (req, res)=>{
     try{
                 
         const now = new Date()
+        date.format(now, 'YYYY/MM/DD HH:mm:ss');
 
         // Change and update status of auction if they are Completed
-        const updatedPosts = await Auction.updateMany({stop_time:{$lte: now}},
+        const updatedPosts = await Auction.updateMany({end:{$lte: now}},
             
             [
                 {$set:{status:'Completed', winner:"$current_bidder"}},
                 {$unset:"current_bidder"}
                 ]
             )
+        
+            
+        const updateTime = await Auction.updateMany(
+            {end:{$gt: now}},
+            [
+                {$set:
+                    {
+                        milliseconds_to_go: {$subtract: ["$end", date_ob]}
+                    }
+                }
+            ]
+        )
 
 
         const getPostById = await Auction.findById(req.params.postId)
@@ -88,16 +99,18 @@ router.get('/:postId', verifyToken, async (req, res)=>{
 
 // POST AUCTION
 router.post('/', verifyToken, async (req, res)=>{
-    const now = new Date()
+    
+    //const now = new Date(
+
     const auctionData = new Auction({
             item:req.body.item,
             bidding_price:req.body.bidding_price,
-            hours_left:req.body.hours_left,
+            duration_in_hours:req.body.duration_in_hours,
             owner:req.body.owner,
-            stop_time:date.addHours(now, req.body.hours_left),
+            end:Date.now() + req.body.duration_in_hours*60*60*1000,
+            milliseconds_to_go:req.body.duration_in_hours*60*60*1000,
             history:[]
-            //history:[[req.body.bidding_price, 'Auction Started', now]]
-    })
+            })
 
     try{
         const auctionToSave = await auctionData.save()
@@ -110,10 +123,11 @@ router.post('/', verifyToken, async (req, res)=>{
 // PATCH (Bid)
 router.patch('/:postId', verifyToken, async (req,res)=>{
     const now = new Date()
+    date.format(now, 'YYYY/MM/DD HH:mm:ss');
 
     try{
         const getPostById = await Auction.findById(req.params.postId)
-        if(getPostById.status == 'Open for offers' && now < getPostById.stop_time && req.body.bidding_price >= getPostById.bidding_price){ // can only bid if Open for offers and before the end of auction
+        if(getPostById.status == 'Open for offers' && now < getPostById.end && req.body.bidding_price >= getPostById.bidding_price){ // can only bid if Open for offers and before the end of auction
             try{
                 // Update the price and bidder
                 const updateAuctionById = await Auction.updateOne(
@@ -142,31 +156,4 @@ router.patch('/:postId', verifyToken, async (req,res)=>{
         res.status(400).send('Something went wrong.')
     }
 })
-
-// Update status to closed when time expired
-// setInterval(function () {
-//     const now = new Date()
-
-//     // no await?
-//     Auction.findOne({stop_time: {$gte:now} }, function (err, docs) {
-//         if (err){
-//             res.send({message:err})
-//         }
-//         else{
-//             const time_to_go = date.subtract(docs.stop_time, now).toHours()
-//             const updatedTime =  Auction.updateOne({_id:docs._id}, {$set:{hours_left:time_to_go}})
-//             console.log(time_to_go)
-//         }
-//     })
-//         // const now = new Date()
-//         // try{
-//         //     console.log('Testing')
-//         //     const elapsed = Auction.find({stop_time:{$gte: now}})
-            
-//         //     //date.subtract("stop_time", now).toHours()}})
-//         //     console.log(elapsed)//find the elapsed auction
-//         // }catch{
-//         //     console.log('Everything fine')
-//         // } 
-// }, 5000)
 module.exports=router

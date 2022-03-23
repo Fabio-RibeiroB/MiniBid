@@ -30,13 +30,20 @@ const auctionSchema = mongoose.Schema({
         min:3,
         max:256
     },
-    hours_left:{
+
+    duration_in_hours:{
         type:Number,
         min:1,
         max:256,
         required:true
     },
-    stop_time:{
+
+    milliseconds_to_go:{
+        type:Number,
+        min:1
+    },
+
+    end:{
         type:Date
     },
     winner:{
