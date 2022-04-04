@@ -15,8 +15,6 @@ const auctionRoute = require('./routes/auction') // auction
 // Routes
 app.use('/api/user', authRoute)
 app.use('/api/auctions', auctionRoute)
-// app.use('/api/items', itemsRoute)
-
 
 // Connect DB
 mongoose.connect(process.env.DB_CONNECTOR, ()=>{

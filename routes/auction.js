@@ -2,7 +2,8 @@ const express = require('express')
 const res = require('express/lib/response')
 const router = express.Router()
 const Auction = require('../models/Auction')
-const verifyToken = require('../verifyToken')
+const verifyToken = require('../validations/verifyToken')
+
 const date = require('date-and-time')
 
 
@@ -50,6 +51,49 @@ router.get('/', verifyToken, async(req, res)=>{
     }
 })
 
+// GET Auctions SOLD ITEMS
+router.get('/sold', verifyToken, async(req, res)=>{
+    
+
+    try{
+        
+        let now = Date.now();
+        let date_ob = new Date(now);
+        let hour = date_ob.getHours();
+        let minutes = date_ob.getMinutes();
+
+        // Change and update status of auction if they are Completed
+        const updatedStatus = await Auction.updateMany(
+            {end:{$lte: now}},
+
+        
+            [
+            {$set:{status:'Completed', winner:"$current_bidder"}},
+            {$unset:"current_bidder"}
+            ]
+        )
+        
+
+        const updateTime = await Auction.updateMany(
+            {end:{$gt: now}},
+            [
+                // Stage 1: Subtract stop time and now
+                {$set:
+                    {
+                        milliseconds_to_go: {$subtract: ["$end", date_ob]}
+                    }
+                }
+            ]
+        )
+
+
+        const auctions = await Auction.find({status:'Completed'}).select({'history':0, 'current_bidder':0, 'milliseconds_to_go':0}).limit(10) // don't display the bidding history
+        res.send(auctions)
+    }catch(err){
+        res.status(400).send({message:err})
+    }
+})
+
 // GET One Auction's history (by iD)
 router.get('/history/:postId', verifyToken, async (req, res)=>{
     try{
@@ -65,22 +109,27 @@ router.get('/history/:postId', verifyToken, async (req, res)=>{
 router.get('/:postId', verifyToken, async (req, res)=>{
     try{
                 
-        const now = new Date()
-        date.format(now, 'YYYY/MM/DD HH:mm:ss');
+        let now = Date.now();
+        let date_ob = new Date(now);
+        let hour = date_ob.getHours();
+        let minutes = date_ob.getMinutes();
 
         // Change and update status of auction if they are Completed
-        const updatedPosts = await Auction.updateMany({end:{$lte: now}},
-            
-            [
-                {$set:{status:'Completed', winner:"$current_bidder"}},
-                {$unset:"current_bidder"}
-                ]
-            )
+        const updatedStatus = await Auction.updateMany(
+            {end:{$lte: now}},
+
         
-            
+            [
+            {$set:{status:'Completed', winner:"$current_bidder"}},
+            {$unset:"current_bidder"}
+            ]
+        )
+        
+
         const updateTime = await Auction.updateMany(
             {end:{$gt: now}},
             [
+                // Stage 1: Subtract stop time and now
                 {$set:
                     {
                         milliseconds_to_go: {$subtract: ["$end", date_ob]}
@@ -99,8 +148,6 @@ router.get('/:postId', verifyToken, async (req, res)=>{
 
 // POST AUCTION
 router.post('/', verifyToken, async (req, res)=>{
-    
-    //const now = new Date(
 
     const auctionData = new Auction({
             item:req.body.item,
@@ -123,11 +170,11 @@ router.post('/', verifyToken, async (req, res)=>{
 // PATCH (Bid)
 router.patch('/:postId', verifyToken, async (req,res)=>{
     const now = new Date()
-    date.format(now, 'YYYY/MM/DD HH:mm:ss');
-
+    // Owners cannot bid for their own items.
+    // can only bid if Open for offers and before the end of auction
     try{
         const getPostById = await Auction.findById(req.params.postId)
-        if(getPostById.status == 'Open for offers' && now < getPostById.end && req.body.bidding_price >= getPostById.bidding_price){ // can only bid if Open for offers and before the end of auction
+        if(getPostById.status == 'Open for offers' && now < getPostById.end && req.body.bidding_price >= getPostById.bidding_price && req.body.current_bidder != getPostById.owner){ 
             try{
                 // Update the price and bidder
                 const updateAuctionById = await Auction.updateOne(
@@ -151,7 +198,7 @@ router.patch('/:postId', verifyToken, async (req,res)=>{
             }catch(err){
                 res.status(400).send({message:err})
             }
-        }else{res.status(423).send('You cannot bid for this item (time expired or not high enough bid)')}
+        }else{res.status(423).send('You cannot bid for this item.')}
     }catch(err){
         res.status(400).send('Something went wrong.')
     }
