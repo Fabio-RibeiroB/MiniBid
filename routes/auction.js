@@ -59,8 +59,8 @@ router.get('/sold', verifyToken, async(req, res)=>{
         
         let now = Date.now();
         let date_ob = new Date(now);
-        let hour = date_ob.getHours();
-        let minutes = date_ob.getMinutes();
+        //let hour = date_ob.getHours();
+        //let minutes = date_ob.getMinutes();
 
         // Change and update status of auction if they are Completed
         const updatedStatus = await Auction.updateMany(
@@ -68,8 +68,7 @@ router.get('/sold', verifyToken, async(req, res)=>{
 
         
             [
-            {$set:{status:'Completed', winner:"$current_bidder"}},
-            {$unset:"current_bidder"}
+            {$set:{status:'Completed', winner:"$current_bidder"}}
             ]
         )
         
